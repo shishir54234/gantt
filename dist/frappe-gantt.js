@@ -1738,7 +1738,8 @@ var Gantt = (function () {
     //compute the horizontal x distance
     computeGridHighlightDimensions(view_mode) {
       let x = this.options.column_width / 2;
-
+      const todayDate = new Date();
+      if (todayDate < this.gantt_start || todayDate > this.gantt_end) return null;
       if (this.view_is(VIEW_MODE.DAY)) {
         let today = date_utils.today();
         return {
@@ -1750,7 +1751,6 @@ var Gantt = (function () {
       }
 
       for (let date of this.dates) {
-        const todayDate = new Date();
         const startDate = new Date(date);
         const endDate = new Date(date);
         switch (view_mode) {
@@ -1770,6 +1770,7 @@ var Gantt = (function () {
           x += this.options.column_width;
         }
       }
+      return null;
     }
 
     make_grid_highlights() {
@@ -1782,15 +1783,22 @@ var Gantt = (function () {
         this.view_is(VIEW_MODE.YEAR)
       ) {
         // Used as we must find the _end_ of session if view is not Day
-        const { x: left, date } = this.computeGridHighlightDimensions(this.options.view_mode);
+        const highlightDimensions = this.computeGridHighlightDimensions(this.options.view_mode);
+        if (!highlightDimensions) return;
+        const { x: left, date } = highlightDimensions;
         const top = this.options.header_height + this.options.padding / 2;
         const height = (this.options.bar_height + this.options.padding) * this.tasks.length;
         this.$current_highlight = this.create_el({ top, left, height, classes: 'current-highlight', append_to: this.$container });
         let $today = document.getElementById(date_utils.format(date).replaceAll(' ', '_'));
-
-        $today.classList.add('current-date-highlight');
-        $today.style.top = +$today.style.top.slice(0, -2) - 4 + 'px';
-        $today.style.left = +$today.style.left.slice(0, -2) - 8 + 'px';
+        
+        if($today){
+          $today.classList.add('current-date-highlight');
+          $today.style.top = +$today.style.top.slice(0, -2) - 4 + 'px';
+          $today.style.left = +$today.style.left.slice(0, -2) - 8 + 'px';
+        }
+        else {
+          console.log("today is NULL");
+        }
       }
     }
 
@@ -2050,7 +2058,7 @@ var Gantt = (function () {
         }
 
         bar_wrapper.classList.add("active");
-        this.popup.parent.classList.add('hidden');
+        if(this.popup!=null)this.popup.parent.classList.add("hidden");
 
         x_on_start = e.offsetX;
         y_on_start = e.offsetY;
@@ -2117,7 +2125,7 @@ var Gantt = (function () {
           localBars = ids.map(id => this.get_bar(id));
           if (this.options.auto_move_label) {
             localBars.forEach(bar => {
-              bar.update_label_position_on_horizontal_scroll({ x: dx, sx: e.currentTarget.scrollLeft });
+              this.bar.update_label_position_on_horizontal_scroll({ x: dx, sx: e.currentTarget.scrollLeft });
             });
           }
         }
@@ -2285,7 +2293,7 @@ var Gantt = (function () {
       [...this.$svg.querySelectorAll(".bar-wrapper")].forEach((el) => {
         el.classList.remove("active");
       });
-      this.popup.parent.classList.remove('hidden');
+      if(this.popup!=null)this.popup.parent.classList.remove("hidden");
     }
 
     view_is(modes) {
